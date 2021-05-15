@@ -37,8 +37,8 @@ class BaseGradientDescent(FixedEpsilonAttack, ABC):
         self, model: Model, labels: ep.Tensor
     ) -> Callable[[ep.Tensor], ep.Tensor]:
         # can be overridden by users
-        def loss_fn(inputs: ep.Tensor) -> ep.Tensor:
-            logits = model(inputs)
+        def loss_fn(inputs: ep.Tensor, **kwargs) -> ep.Tensor:
+            logits = model(inputs, **kwargs)
             return ep.crossentropy(logits, labels).sum()
 
         return loss_fn
@@ -48,8 +48,9 @@ class BaseGradientDescent(FixedEpsilonAttack, ABC):
         self,
         loss_fn: Callable[[ep.Tensor], ep.Tensor],
         x: ep.Tensor,
+        **kwargs
     ) -> Tuple[ep.Tensor, ep.Tensor]:
-        return ep.value_and_grad(loss_fn, x)
+        return ep.value_and_grad(loss_fn, x, **kwargs)
 
     def run(
         self,
@@ -60,10 +61,10 @@ class BaseGradientDescent(FixedEpsilonAttack, ABC):
         epsilon: float,
         **kwargs: Any,
     ) -> T:
-        raise_if_kwargs(kwargs)
+        # raise_if_kwargs(kwargs)
         x0, restore_type = ep.astensor_(inputs)
         criterion_ = get_criterion(criterion)
-        del inputs, criterion, kwargs
+        del inputs, criterion #, kwargs
 
         # perform a gradient ascent (targeted attack) or descent (untargeted attack)
         if isinstance(criterion_, Misclassification):
@@ -89,7 +90,7 @@ class BaseGradientDescent(FixedEpsilonAttack, ABC):
             x = x0
 
         for _ in range(self.steps):
-            _, gradients = self.value_and_grad(loss_fn, x)
+            _, gradients = self.value_and_grad(loss_fn, x, **kwargs)
             gradients = self.normalize(gradients, x=x, bounds=model.bounds)
             x = x + gradient_step_sign * stepsize * gradients
             x = self.project(x, x0, epsilon)

@@ -282,7 +282,7 @@ class FixedEpsilonAttack(AttackWithDistance):
             # alternatively, we could check if the perturbation is at most epsilon,
             # but then we would need to handle numerical violations;
             xpc = self.distance.clip_perturbation(x, xp, epsilon)
-            is_adv = is_adversarial(xpc)
+            is_adv = is_adversarial(xpc, **kwargs)
 
             xps.append(xp)
             xpcs.append(xpc)
@@ -416,7 +416,7 @@ class MinimizationAttack(AttackWithDistance):
                 xpc = xp
             else:
                 xpc = self.distance.clip_perturbation(x, xp, epsilon)
-            is_adv = is_adversarial(xpc)
+            is_adv = is_adversarial(xpc, **kwargs)
 
             xpcs.append(xpc)
             success.append(is_adv)
@@ -453,8 +453,8 @@ class FlexibleDistanceMinimizationAttack(MinimizationAttack):
 def get_is_adversarial(
     criterion: Criterion, model: Model
 ) -> Callable[[ep.Tensor], ep.Tensor]:
-    def is_adversarial(perturbed: ep.Tensor) -> ep.Tensor:
-        outputs = model(perturbed)
+    def is_adversarial(perturbed: ep.Tensor, **kwargs) -> ep.Tensor:
+        outputs = model(perturbed, **kwargs)
         return criterion(perturbed, outputs)
 
     return is_adversarial

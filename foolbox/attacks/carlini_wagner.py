@@ -68,10 +68,10 @@ class L2CarliniWagnerAttack(MinimizationAttack):
         early_stop: Optional[float] = None,
         **kwargs: Any,
     ) -> T:
-        raise_if_kwargs(kwargs)
+        # raise_if_kwargs(kwargs)
         x, restore_type = ep.astensor_(inputs)
         criterion_ = get_criterion(criterion)
-        del inputs, criterion, kwargs
+        del inputs, criterion #, kwargs
 
         N = len(x)
 
@@ -107,13 +107,13 @@ class L2CarliniWagnerAttack(MinimizationAttack):
         rows = range(N)
 
         def loss_fun(
-            delta: ep.Tensor, consts: ep.Tensor
+            delta: ep.Tensor, consts: ep.Tensor, **kwargs
         ) -> Tuple[ep.Tensor, Tuple[ep.Tensor, ep.Tensor]]:
             assert delta.shape == x_attack.shape
             assert consts.shape == (N,)
 
             x = to_model_space(x_attack + delta)
-            logits = model(x)
+            logits = model(x, **kwargs)
 
             if targeted:
                 c_minimize = best_other_classes(logits, classes)
@@ -162,7 +162,7 @@ class L2CarliniWagnerAttack(MinimizationAttack):
             consts_ = ep.from_numpy(x, consts.astype(np.float32))
 
             for step in range(self.steps):
-                loss, (perturbed, logits), gradient = loss_aux_and_grad(delta, consts_)
+                loss, (perturbed, logits), gradient = loss_aux_and_grad(delta, consts_, **kwargs)
                 delta += optimizer(gradient, self.stepsize)
 
                 if self.abort_early and step % (np.ceil(self.steps / 10)) == 0:

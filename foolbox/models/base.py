@@ -96,10 +96,10 @@ class ModelWithPreprocessing(Model):
     def dummy(self) -> ep.Tensor:
         return self._dummy
 
-    def __call__(self, inputs: T) -> T:
+    def __call__(self, inputs: T, **kwargs) -> T:
         x, restore_type = ep.astensor_(inputs)
         y = self._preprocess(x)
-        z = ep.astensor(self._model(y.raw))
+        z = ep.astensor(self._model(y.raw, **kwargs))
         return restore_type(z)
 
     def transform_bounds(

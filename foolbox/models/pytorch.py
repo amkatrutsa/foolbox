@@ -44,9 +44,9 @@ class PyTorchModel(ModelWithPreprocessing):
         dummy = ep.torch.zeros(0, device=device)
 
         # we need to make sure the output only requires_grad if the input does
-        def _model(x: torch.Tensor) -> torch.Tensor:
+        def _model(x: torch.Tensor, **kwargs) -> torch.Tensor:
             with torch.set_grad_enabled(x.requires_grad):
-                result = cast(torch.Tensor, model(x))
+                result = cast(torch.Tensor, model(x, **kwargs))
             return result
 
         super().__init__(

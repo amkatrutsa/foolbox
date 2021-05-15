@@ -8,11 +8,11 @@ from .types import Bounds
 from .models import Model
 
 
-def accuracy(fmodel: Model, inputs: Any, labels: Any) -> float:
+def accuracy(fmodel: Model, inputs: Any, labels: Any, **kwargs) -> float:
     inputs_, labels_ = ep.astensors(inputs, labels)
     del inputs, labels
 
-    predictions = fmodel(inputs_).argmax(axis=-1)
+    predictions = fmodel(inputs_, **kwargs).argmax(axis=-1)
     accuracy = (predictions == labels_).float32().mean()
     return accuracy.item()
 

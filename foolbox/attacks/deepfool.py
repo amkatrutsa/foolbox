@@ -64,9 +64,9 @@ class DeepFoolAttack(MinimizationAttack, ABC):
         if self.loss == "logits":
 
             def loss_fun(
-                x: ep.Tensor, k: int
+                x: ep.Tensor, k: int, **kwargs
             ) -> Tuple[ep.Tensor, Tuple[ep.Tensor, ep.Tensor]]:
-                logits = model(x)
+                logits = model(x, **kwargs)
                 ik = classes[:, k]
                 l0 = logits[rows, i0]
                 lk = logits[rows, ik]
@@ -76,9 +76,9 @@ class DeepFoolAttack(MinimizationAttack, ABC):
         elif self.loss == "crossentropy":
 
             def loss_fun(
-                x: ep.Tensor, k: int
+                x: ep.Tensor, k: int, **kwargs
             ) -> Tuple[ep.Tensor, Tuple[ep.Tensor, ep.Tensor]]:
-                logits = model(x)
+                logits = model(x, **kwargs)
                 ik = classes[:, k]
                 l0 = -ep.crossentropy(logits, i0)
                 lk = -ep.crossentropy(logits, ik)
@@ -101,15 +101,15 @@ class DeepFoolAttack(MinimizationAttack, ABC):
         early_stop: Optional[float] = None,
         **kwargs: Any,
     ) -> T:
-        raise_if_kwargs(kwargs)
+        # raise_if_kwargs(kwargs)
         x, restore_type = ep.astensor_(inputs)
-        del inputs, kwargs
+        del inputs#, kwargs
 
         criterion = get_criterion(criterion)
 
         min_, max_ = model.bounds
 
-        logits = model(x)
+        logits = model(x, **kwargs)
         classes = logits.argsort(axis=-1).flip(axis=-1)
         if self.candidates is None:
             candidates = logits.shape[-1]  # pragma: no cover
@@ -132,7 +132,7 @@ class DeepFoolAttack(MinimizationAttack, ABC):
         p_total = ep.zeros_like(x)
         for _ in range(self.steps):
             # let's first get the logits using k = 1 to see if we are done
-            diffs = [loss_aux_and_grad(x, 1)]
+            diffs = [loss_aux_and_grad(x, 1, **kwargs)]
             _, (_, logits), _ = diffs[0]
 
             is_adv = criterion(x, logits)
@@ -142,7 +142,7 @@ class DeepFoolAttack(MinimizationAttack, ABC):
             # then run all the other k's as well
             # we could avoid repeated forward passes and only repeat
             # the backward pass, but this cannot currently be done in eagerpy
-            diffs += [loss_aux_and_grad(x, k) for k in range(2, candidates)]
+            diffs += [loss_aux_and_grad(x, k, **kwargs) for k in range(2, candidates)]
 
             # we don't need the logits
             diffs_ = [(losses, grad) for _, (losses, _), grad in diffs]
